@@ -9,7 +9,16 @@ const urlDatabase = { //object storing data for templates
   "9sm5xK": "http://www.google.com"
 };
 
-function generateRandomString() {}
+//generate random string for use as tinyURL 
+function generateRandomString() { 
+  let result = '';
+  let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charactersLength = characters.length;
+  for ( var i = 0; i < 6; i++ ) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+}
 
 app.use(express.urlencoded({ extended: true })); 
 //this is a built-in middleware function in exprses. parses incoming requests created by a form submission (urls_new) so you can access data submitted using the req body (converts url encoded data to strings, otherwise body may show as undefined)
