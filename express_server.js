@@ -4,33 +4,33 @@ const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
 
-const urlDatabase = {
+const urlDatabase = { //object storing data for templates
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
 
-app.get("/", (req, res) => {
+app.get("/", (req, res) => { //get "/" is main url, displays hello msg
   res.send("Hello!");
 });
 
-app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
-  res.render("urls_index", templateVars);
+app.get("/urls", (req, res) => { //adds "/urls" route to main url
+  const templateVars = { urls: urlDatabase }; //give key to obj for use in urls_index
+  res.render("urls_index", templateVars); //render html found on urls_index.ejs file, pass along templateVars object for use in that file
 });
 
-app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
-  res.render("urls_show", templateVars);
+app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value entered at url but we are storing specifics in urlDatabase
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] }; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
+  res.render("urls_show", templateVars); //render page, send obj to file
 });
 
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
+app.get("/urls.json", (req, res) => { 
+  res.json(urlDatabase); //shows contents of urlDatabase obj in browser
 });
 
-app.get("/hello", (req, res) => {
+app.get("/hello", (req, res) => { //adds "/hello" url and some basic html
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, () => { 
   console.log(`Example app listening on port ${PORT}!`);
 });
