@@ -44,12 +44,10 @@ app.post(`/urls/:id/delete`, (req, res) => { // this function actions when form 
 //when user submits edit on urls/:id 
 app.post('/urls/:id', (req, res) => {
   const url_id = req.params.id; //take shortURL from browser url
-  console.log(req.body)
-  console.log(req.params)
   const longURL = req.body.longURL; //get new longURL submitted on form
 
   urlDatabase[url_id] = longURL //update database record of tinyURL (urlID) with new longURL from form submission
-
+  console.log(urlDatabase); //log to see changes reflected
   res.redirect('/urls/');
 })
 
