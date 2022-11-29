@@ -10,12 +10,12 @@ const urlDatabase = { //object storing data for templates
 };
 
 //generate random string for use as tinyURL 
-function generateRandomString() { 
+function makeTinyString() { 
   let result = '';
   let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const charactersLength = characters.length;
   for ( var i = 0; i < 6; i++ ) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return result;
 }
@@ -24,9 +24,12 @@ app.use(express.urlencoded({ extended: true }));
 //this is a built-in middleware function in exprses. parses incoming requests created by a form submission (urls_new) so you can access data submitted using the req body (converts url encoded data to strings, otherwise body may show as undefined)
 //So using our urls_new form as an example, the data in the input field will be avaialbe to us in the req.body.longURL variable, which we can store in our urlDatabase object. 
 
-app.post("/urls", (req, res) => { //this function actions when form submitted
+app.post("/urls", (req, res) => { // this function actions when form submitted
+  let newTinyURL = makeTinyString(); // generate random tinyURL
+  urlDatabase[newTinyURL] = req.body.longURL; // add tiny/long URL pair to DB
   console.log(req.body); // Log the POST request body to the console
-  res.send("Ok"); // Respond with 'Ok' (we will replace this)
+  console.log(urlDatabase);
+  res.redirect(`/urls/${newTinyURL}`); //redirect to new tinyURL page
 });
 
 app.get("/", (req, res) => { //get "/" is main url, displays hello msg
@@ -45,6 +48,11 @@ app.get("/urls/new", (req, res) => { //adds "urls/new" route
 app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value entered at url but we are storing specifics in urlDatabase
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] }; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
   res.render("urls_show", templateVars); //render page, send obj to file
+});
+
+app.get("/u/:id", (req, res) => {
+  res.redirect(`${urlDatabase[req.params.id]}`); //redirect to matching longURL of tinyURL entered
+  
 });
 
 app.get("/urls.json", (req, res) => { 
