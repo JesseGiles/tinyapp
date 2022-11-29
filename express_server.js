@@ -32,6 +32,13 @@ app.post("/urls", (req, res) => { // this function actions when form submitted
   res.redirect(`/urls/${newTinyURL}`); //redirect to new tinyURL page
 });
 
+app.post(`/urls/:id/delete`, (req, res) => { // this function actions when form submitted
+  let deleteRecord = req.params.id; //store id value of tinyURL delete clicked
+  delete urlDatabase[deleteRecord]; //remove this id from database obj
+  console.log(urlDatabase);
+  res.redirect('/urls'); //reload /urls after deleting to see changes
+});
+
 app.get("/", (req, res) => { //get "/" is main url, displays hello msg
   res.send("Hello!");
 });
