@@ -1,4 +1,5 @@
 const express = require("express");
+var cookieParser = require('cookie-parser')
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -19,6 +20,8 @@ function makeTinyString() {
   }
   return result;
 }
+app.use(cookieParser()); 
+//external npm middleware function to parse cookies data as req.cookies from the header of a request
 
 app.use(express.urlencoded({ extended: true })); 
 //this is a built-in middleware function in exprses. parses incoming requests created by a form submission (urls_new) so you can access data submitted using the req body (converts url encoded data to strings, otherwise body may show as undefined)
@@ -29,7 +32,7 @@ app.post("/urls", (req, res) => { // this function actions when form submitted
   let newTinyURL = makeTinyString(); // generate random tinyURL
   urlDatabase[newTinyURL] = req.body.longURL; // add tiny/long URL pair to DB
   console.log(req.body); // Log the POST request body to the console
-  console.log(urlDatabase);
+  console.log(`verifying new record added`, urlDatabase);
   res.redirect(`/urls/${newTinyURL}`); //redirect to new tinyURL page
 });
 
@@ -37,7 +40,7 @@ app.post("/urls", (req, res) => { // this function actions when form submitted
 app.post(`/urls/:id/delete`, (req, res) => { // this function actions when form submitted
   let deleteRecord = req.params.id; //store id value of tinyURL delete clicked
   delete urlDatabase[deleteRecord]; //remove this id from database obj
-  console.log(urlDatabase);
+  console.log(`verifying deleted record: `, urlDatabase);
   res.redirect('/urls'); //reload /urls after deleting to see changes
 });
 
@@ -51,21 +54,36 @@ app.post('/urls/:id', (req, res) => {
   res.redirect('/urls/');
 })
 
+//when user submits login form in header
+app.post('/login', (req, res) => { //after login form submitted
+  console.log(`login req.body: `, req.body);
+  res.cookie('username', req.body.username); //set cookie username: value on form
+  console.log(`cookie created for: `, req.body.username); //log to confirm
+  res.redirect('/urls');
+});
+
+//when user presses logout button in header
+app.post('/logout', (req, res) => { 
+  res.clearCookie('username') //clear cookie so login form repopulates
+  res.redirect('/urls');
+})
+
 app.get("/", (req, res) => { //get "/" is main url, displays hello msg
   res.send("Hello!");
 });
 
 app.get("/urls", (req, res) => { //adds "/urls" route to main url
-  const templateVars = { urls: urlDatabase }; //give key to obj for use in urls_index
+  const templateVars = { urls: urlDatabase, username: req.cookies["username"], }; //give key to obj for use in urls_index
   res.render("urls_index", templateVars); //render html found on urls_index.ejs file, pass along templateVars object for use in that file
 });
 
 app.get("/urls/new", (req, res) => { //adds "urls/new" route
-  res.render("urls_new"); //utlizing urls_new.js
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"], };
+  res.render("urls_new", templateVars); //utlizing urls_new.js
 })
 
 app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value entered at url but we are storing specifics in urlDatabase
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] }; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"], }; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
   res.render("urls_show", templateVars); //render page, send obj to file
 });
 
