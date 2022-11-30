@@ -82,6 +82,12 @@ app.get("/urls/new", (req, res) => { //adds "urls/new" route
   res.render("urls_new", templateVars); //utlizing urls_new.js
 })
 
+//page for registering an email/password for tinyapp
+app.get("/register", (req, res) => {
+  const templateVars = { username: req.cookies["username"], };
+  res.render("urls_registration", templateVars);
+})
+
 app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value entered at url but we are storing specifics in urlDatabase
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"], }; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
   res.render("urls_show", templateVars); //render page, send obj to file
