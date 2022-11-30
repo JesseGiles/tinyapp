@@ -10,6 +10,19 @@ const urlDatabase = { //object storing data for templates
   "9sm5xK": "http://www.google.com"
 };
 
+const users= {
+  userRandomID: {
+    id: "userRandomID",
+    email: "rockybalboa@italianstallian.yo",
+    password: "yo-adrian",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "ivandrago@sovietunion.ussr",
+    password: "i-must-break-you",
+  }
+};
+
 //generate random string for use as tinyURL
 const makeTinyString = function() {
   let result = '';
@@ -68,6 +81,19 @@ app.post('/logout', (req, res) => {
   res.redirect('/urls');
 });
 
+//when user submits registration form with email/password
+app.post('/register', (req, res) => {
+  let newUserID = makeTinyString(); //generate random string for userID
+  users[newUserID] = { // add new userid/email/pw to user database obj
+    id: newUserID,
+    email: req.body.email, 
+    password: req.body.password,
+  }
+  res.cookie('username', newUserID);
+  console.log(users);
+  res.redirect('/urls')
+});
+
 app.get("/", (req, res) => { //get "/" is main url, displays hello msg
   res.send("Hello!");
 });
@@ -78,7 +104,7 @@ app.get("/urls", (req, res) => { //adds "/urls" route to main url
 });
 
 app.get("/urls/new", (req, res) => { //adds "urls/new" route
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"], };
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], users, };
   res.render("urls_new", templateVars); //utlizing urls_new.js
 });
 
