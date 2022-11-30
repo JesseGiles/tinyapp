@@ -80,16 +80,28 @@ app.post('/urls/:id', (req, res) => {
 
 //when user submits login form in header
 app.post('/login', (req, res) => { //after login form submitted
-  console.log(`login req.body: `, req.body);
-  res.cookie('user_id', req.body.user_id); //set cookie username: value on form
-  console.log(`cookie created for: `, req.body.user_id); //log to confirm
+  const loginEmail =  req.body.email;
+  const loginPassword = req.body.password;
+
+  const validateUser = getUserByEmail(loginEmail);
+
+  if (!validateUser) {
+    return res.status(403).send('Error 403: This email is not registered to TinyApp.');
+  }
+
+  if (validateUser.password !== loginPassword) {
+    return res.status(403).send('Error 403: Email/password do not match.');
+  }
+
+  res.cookie('user_id', validateUser.id); //set cookie set to existing users id
+  console.log(`Existing user login for ${loginEmail}! Cookie set to userID:`, validateUser.id);
   res.redirect('/urls');
 });
 
 //when user presses logout button in header
 app.post('/logout', (req, res) => {
   res.clearCookie('user_id'); //clear cookie so login form repopulates
-  res.redirect('/urls');
+  res.redirect('/login');
 });
 
 //when user submits registration form with email/password
@@ -98,9 +110,9 @@ app.post('/register', (req, res) => {
   const submittedEmail = req.body.email;
   const submittedPW = req.body.password;
 
-  const doesEmailExist = getUserByEmail(req.body.email);
+  const validateUser = getUserByEmail(req.body.email);
 
-  if (doesEmailExist) {
+  if (validateUser) {
     return res.status(400).send('Error 400: This email is already registered to another user.');
   }
 
