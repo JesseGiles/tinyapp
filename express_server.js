@@ -1,5 +1,5 @@
 const express = require("express");
-var cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -10,22 +10,22 @@ const urlDatabase = { //object storing data for templates
   "9sm5xK": "http://www.google.com"
 };
 
-//generate random string for use as tinyURL 
-function makeTinyString() { 
+//generate random string for use as tinyURL
+const makeTinyString = function() {
   let result = '';
   let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const charactersLength = characters.length;
-  for ( var i = 0; i < 6; i++ ) {
+  for (let i = 0; i < 6; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return result;
-}
-app.use(cookieParser()); 
+};
+app.use(cookieParser());
 //external npm middleware function to parse cookies data as req.cookies from the header of a request
 
-app.use(express.urlencoded({ extended: true })); 
+app.use(express.urlencoded({ extended: true }));
 //this is a built-in middleware function in exprses. parses incoming requests created by a form submission (urls_new) so you can access data submitted using the req body (converts url encoded data to strings, otherwise body may show as undefined)
-//So using our urls_new form as an example, the data in the input field will be avaialbe to us in the req.body.longURL variable, which we can store in our urlDatabase object. 
+//So using our urls_new form as an example, the data in the input field will be avaialbe to us in the req.body.longURL variable, which we can store in our urlDatabase object.
 
 //when user clicks submit on urls/new
 app.post("/urls", (req, res) => { // this function actions when form submitted
@@ -44,15 +44,15 @@ app.post(`/urls/:id/delete`, (req, res) => { // this function actions when form 
   res.redirect('/urls'); //reload /urls after deleting to see changes
 });
 
-//when user submits edit on urls/:id 
+//when user submits edit on urls/:id
 app.post('/urls/:id', (req, res) => {
-  const url_id = req.params.id; //take shortURL from browser url
+  const urlID = req.params.id; //take shortURL from browser url
   const longURL = req.body.longURL; //get new longURL submitted on form
 
-  urlDatabase[url_id] = longURL //update database record of tinyURL (urlID) with new longURL from form submission
+  urlDatabase[urlID] = longURL; //update database record of tinyURL (urlID) with new longURL from form submission
   console.log(urlDatabase); //log to see changes reflected
   res.redirect('/urls/');
-})
+});
 
 //when user submits login form in header
 app.post('/login', (req, res) => { //after login form submitted
@@ -63,10 +63,10 @@ app.post('/login', (req, res) => { //after login form submitted
 });
 
 //when user presses logout button in header
-app.post('/logout', (req, res) => { 
-  res.clearCookie('username') //clear cookie so login form repopulates
+app.post('/logout', (req, res) => {
+  res.clearCookie('username'); //clear cookie so login form repopulates
   res.redirect('/urls');
-})
+});
 
 app.get("/", (req, res) => { //get "/" is main url, displays hello msg
   res.send("Hello!");
@@ -80,13 +80,13 @@ app.get("/urls", (req, res) => { //adds "/urls" route to main url
 app.get("/urls/new", (req, res) => { //adds "urls/new" route
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"], };
   res.render("urls_new", templateVars); //utlizing urls_new.js
-})
+});
 
 //page for registering an email/password for tinyapp
 app.get("/register", (req, res) => {
   const templateVars = { username: req.cookies["username"], };
   res.render("urls_registration", templateVars);
-})
+});
 
 app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value entered at url but we are storing specifics in urlDatabase
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"], }; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
@@ -98,7 +98,7 @@ app.get("/u/:id", (req, res) => {
   
 });
 
-app.get("/urls.json", (req, res) => { 
+app.get("/urls.json", (req, res) => {
   res.json(urlDatabase); //shows contents of urlDatabase obj in browser
 });
 
@@ -106,6 +106,6 @@ app.get("/hello", (req, res) => { //adds "/hello" url and some basic html
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
-app.listen(PORT, () => { 
+app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
