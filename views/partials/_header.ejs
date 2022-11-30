@@ -16,9 +16,17 @@
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
+        <% if (username) { %>
+        <form class="form-inline" action="/logout" method="POST" name="`<% username %>`">
+          <div class="form-group mb-2">
+            <label>Logged in as: <%= username %> </label> 
+            <td><form method="POST" action="/logout" name="username"><button type="submit">Logout</button></form></td>
+          </div>
+        </form>
+        <% } else { %>
+        <!-- --------------->
         <form class="form-inline" action="/login" method="POST">
           <div class="form-group mb-2">
-            <label for="login form">Log in:</label>
             <input
               class="form-control"
               type="text"
@@ -26,9 +34,10 @@
               placeholder="enter your username"
               style="width: 200px; margin: 1em"
             />
-            <button type="submit" class="btn btn-primary">Submit</button>
+            <button type="submit" class="btn btn-primary">Login</button>
           </div>
         </form>
+        <% } %>
       </div>
     </div>
   </nav>

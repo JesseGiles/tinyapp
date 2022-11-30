@@ -58,26 +58,34 @@ app.post('/urls/:id', (req, res) => {
 
 //when user submits login form in header
 app.post('/login', (req, res) => { //after login form submitted
+  console.log(`login req.body: `, req.body);
   res.cookie('username', req.body.username); //set cookie username: value on form
   console.log(`cookie created for: `, req.body.username); //log to confirm
   res.redirect('/urls');
 });
+
+//when user presses logout button in header
+app.post('/logout', (req, res) => { 
+  res.clearCookie('username') //clear cookie so login form repopulates
+  res.redirect('/urls');
+})
 
 app.get("/", (req, res) => { //get "/" is main url, displays hello msg
   res.send("Hello!");
 });
 
 app.get("/urls", (req, res) => { //adds "/urls" route to main url
-  const templateVars = { urls: urlDatabase }; //give key to obj for use in urls_index
+  const templateVars = { urls: urlDatabase, username: req.cookies["username"], }; //give key to obj for use in urls_index
   res.render("urls_index", templateVars); //render html found on urls_index.ejs file, pass along templateVars object for use in that file
 });
 
 app.get("/urls/new", (req, res) => { //adds "urls/new" route
-  res.render("urls_new"); //utlizing urls_new.js
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"], };
+  res.render("urls_new", templateVars); //utlizing urls_new.js
 })
 
 app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value entered at url but we are storing specifics in urlDatabase
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] }; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"], }; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
   res.render("urls_show", templateVars); //render page, send obj to file
 });
 
