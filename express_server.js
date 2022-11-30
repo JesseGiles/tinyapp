@@ -23,6 +23,18 @@ const users = {
   }
 };
 
+const userLookup = function(email) {
+  console.log('email passed to lookup: ', email)
+  for (userID in users) {
+    console.log('check each email here: ', users[userID].email)
+    console.log('matching?? ', email, ' : ', users[userID].email)
+    if (email === users[userID].email) {
+      return false;
+    }
+  }
+  return true;
+};
+
 //generate random string for use as tinyURL
 const makeTinyString = function() {
   let result = '';
@@ -33,6 +45,7 @@ const makeTinyString = function() {
   }
   return result;
 };
+
 app.use(cookieParser());
 //external npm middleware function to parse cookies data as req.cookies from the header of a request
 
@@ -83,14 +96,32 @@ app.post('/logout', (req, res) => {
 
 //when user submits registration form with email/password
 app.post('/register', (req, res) => {
+  console.log('test return body.email:', req.body.email)
+  console.log('test return body.pw: ', req.body.password)
+  const userEmail = req.body.email;
+  const userPassword = req.body.password;
+
+  const verifyEmail = userLookup(userEmail);
+  console.log('test return verifyEmail: ', verifyEmail)
+
+  if (verifyEmail === false) {
+    return res.status(400).send('This email is already registered to another user.');
+  }
+
+  if (userEmail === null || userPassword === null) {
+    return res.status(400).send('Please enter a username and password');
+  }
+  
   let newUserID = makeTinyString(); //generate random string for userID
   users[newUserID] = { // add new userid/email/pw to user database
     id: newUserID,
     email: req.body.email,
     password: req.body.password,
   };
+
   res.cookie('user_id', newUserID); //create cookie set to randomgen userID
   console.log('New cookie created for userID:', newUserID);
+  console.log('test log users db after creation:', users);
   res.redirect('/urls');
 });
 
