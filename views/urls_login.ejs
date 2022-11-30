@@ -14,31 +14,24 @@
       integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS"
       crossorigin="anonymous"
     />
-    <title>TinyApp</title>
+
+    <title>Kenny Logins</title>
   </head>
+
   <body>
-    <header> <%- include('./partials/_header'); %> </header>
+    <%- include('partials/_header') %>
+
     <main style="margin: 1em;">
-      <h3>My URLs</h3>
+      <h3>TinyApp Account Login</h3>
       <br>
-      <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">Short URL ID</th>
-            <th scope="col">Long URL</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% for (let id in urls) { %>
-            <tr>
-              <td><%= id %></td>
-              <td><%= urls[id] %></td>
-              <td><form method="GET" action="/urls/<%= id %>"><button type="submit">Edit</button></form></td>
-              <td><form method="POST" action="/urls/<%= id %>/delete"><button type="submit">Delete</button></form></td>
-            </tr>
-          <% } %>
-        </tbody>
-      </table>
+      <form action="/login" method="POST">
+        <label for="email">Email: </label>
+        <input type="email" id="enter_email" name="email" placeholder="your@email.com">
+        <label for="lname">Password: </label>
+        <input type="password" id="enter_pw" name="password" placeholder="topsecret">
+        <input type="submit" value="Submit">
+      </form>
+      
     </main>
     <!-- Bootstrap JS -->
     <script

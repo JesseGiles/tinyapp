@@ -140,6 +140,14 @@ app.get("/urls/new", (req, res) => { //adds "urls/new" route
   res.render("urls_new", templateVars); //utlizing urls_new.js
 });
 
+//page for logging into a user account
+app.get("/login", (req, res) => {
+  const userId = req.cookies.user_id;
+  const user = users[userId];
+  const templateVars = { urls: urlDatabase, user: user };
+  res.render('urls_login', templateVars);
+});
+
 //page for registering an email/password for tinyapp
 app.get("/register", (req, res) => {
   const userId = req.cookies.user_id;
