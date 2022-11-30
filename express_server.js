@@ -23,16 +23,14 @@ const users = {
   }
 };
 
-const userLookup = function(email) {
-  console.log('email passed to lookup: ', email)
-  for (userID in users) {
-    console.log('check each email here: ', users[userID].email)
-    console.log('matching?? ', email, ' : ', users[userID].email)
+const getUserByEmail = function(email) {
+  console.log('Verifying if this is an existing email: ', email);
+  for (const userID in users) {
     if (email === users[userID].email) {
-      return false;
+      return users[userID];
     }
   }
-  return true;
+  return null;
 };
 
 //generate random string for use as tinyURL
@@ -96,19 +94,17 @@ app.post('/logout', (req, res) => {
 
 //when user submits registration form with email/password
 app.post('/register', (req, res) => {
-  console.log('test return body.email:', req.body.email)
-  console.log('test return body.pw: ', req.body.password)
-  const userEmail = req.body.email;
-  const userPassword = req.body.password;
 
-  const verifyEmail = userLookup(userEmail);
-  console.log('test return verifyEmail: ', verifyEmail)
+  const submittedEmail = req.body.email;
+  const submittedPW = req.body.password;
 
-  if (verifyEmail === false) {
-    return res.status(400).send('This email is already registered to another user.');
+  const doesEmailExist = getUserByEmail(req.body.email);
+
+  if (doesEmailExist) {
+    return res.status(400).send('Error 400: This email is already registered to another user.');
   }
 
-  if (userEmail === null || userPassword === null) {
+  if (submittedEmail === '' || submittedPW === '') {
     return res.status(400).send('Please enter a username and password');
   }
   
@@ -120,8 +116,8 @@ app.post('/register', (req, res) => {
   };
 
   res.cookie('user_id', newUserID); //create cookie set to randomgen userID
-  console.log('New cookie created for userID:', newUserID);
-  console.log('test log users db after creation:', users);
+  console.log('Valid new user! Cookie created for userID:', newUserID);
+  console.log('test log users db after new registration:', users);
   res.redirect('/urls');
 });
 
