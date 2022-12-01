@@ -5,8 +5,8 @@ const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs"); //set embedded js as template viewer
 
-//database of key/value pairs storing tinyurl and longurl 
-const urlDatabase = { 
+//database of key/value pairs storing tinyurl and longurl
+const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
     userID: "aJ48lW",
@@ -22,7 +22,7 @@ const users = {
   userRandomID: {
     id: "userRandomID",
     email: "rockybalboa@italianstallion.yo",
-    password: "yo-adrian",
+    password: "yoadrian",
   },
   user2RandomID: {
     id: "user2RandomID",
@@ -32,7 +32,7 @@ const users = {
 };
 
 //function to check user database for a webform submitted email
-const getUserByEmail = function(email) { 
+const getUserByEmail = function(email) {
   console.log('Verifying if this is an existing email: ', email);
   for (const userID in users) {
     if (email === users[userID].email) {
@@ -44,12 +44,11 @@ const getUserByEmail = function(email) {
 
 //function to filter /urls to only show what current user has created
 const urlsForUser = function(user) {
-  let currentUsersURLs = {}
+  let currentUsersURLs = {};
     
-  for (tinyURL in urlDatabase) {
-  	console.log('tiny:', tinyURL)
-    if (urlDatabase[tinyURL].userID === user){
-    currentUsersURLs[tinyURL] = urlDatabase[tinyURL]
+  for (let tinyURL in urlDatabase) {
+    if (urlDatabase[tinyURL].userID === user) {
+      currentUsersURLs[tinyURL] = urlDatabase[tinyURL];
     }
   }
 
@@ -75,15 +74,15 @@ app.use(express.urlencoded({ extended: true }));
 
 
 //when user clicks submit on urls/new
-app.post("/urls", (req, res) => { 
+app.post("/urls", (req, res) => {
   const userId = req.cookies.user_id;
-  newLongURL = req.body.longURL;
+  const newLongURL = req.body.longURL;
 
   //if user isnt logged in, return HTML message why they cannot shorten URLs
-  if (userId === undefined) { 
-    console.log(urlDatabase)
+  if (userId === undefined) {
+    console.log(urlDatabase);
     return res.status(400).send('Error 401: You must be logged in to create new TinyURLs.');
-  };
+  }
 
   let newTinyURL = makeTinyString(); // generate random tinyURL
 
@@ -91,7 +90,7 @@ app.post("/urls", (req, res) => {
   urlDatabase[newTinyURL] = {
     longURL: newLongURL,
     userID: req.cookies.user_id
-  }
+  };
 
   console.log(req.body); // Log the POST request body to the console
   console.log(`verifying new record added`, urlDatabase);
@@ -99,8 +98,34 @@ app.post("/urls", (req, res) => {
 });
 
 //when user clicks delete button on /urls
-app.post(`/urls/:id/delete`, (req, res) => { // this function actions when form submitted
+app.post(`/urls/:id/delete`, (req, res) => {
   let deleteRecord = req.params.id; //store id value of tinyURL delete clicked
+
+  const userId = req.cookies.user_id;
+  
+  if (userId === undefined) {
+    return res.status(401).send('Error 401: Please log in to access this page.');
+  }
+
+  const verifyShortURL = deleteRecord; //store value of tinyURL used in browser
+  let wasVerified = false;
+
+  //compare url entered in searchbar with tinyurls in database
+  for (let urls in urlDatabase) {
+    if (verifyShortURL === urls) {
+      wasVerified = true;
+    }
+  }
+
+  //if matching tinyurl not found in db, error
+  if (wasVerified !== true) {
+    return res.status(404).send('Error 404: Tiny URL not found in records.');
+  }
+
+  if (wasVerified === true && urlDatabase[verifyShortURL].userID !== userId) {
+    return res.status(401).send('Error 401: You do not have permission to delete this Tiny URL.');
+  }
+  
   delete urlDatabase[deleteRecord]; //remove this id from database obj
   console.log(`verifying deleted record: `, urlDatabase);
   res.redirect('/urls'); //reload /urls after deleting to see changes
@@ -110,6 +135,33 @@ app.post(`/urls/:id/delete`, (req, res) => { // this function actions when form 
 app.post('/urls/:id', (req, res) => {
   const urlID = req.params.id; //take shortURL from browser url
   const newlongURL = req.body.longURL; //get new longURL submitted on form
+
+  const userId = req.cookies.user_id; //for verifying is a user is logged in
+ 
+  if (userId === undefined) {
+    return res.status(401).send('Error 401: Please log in to access this page.');
+  }
+
+  const verifyShortURL = urlID; //store value of tinyURL used in browser
+  let wasVerified = false;
+
+  //compare url entered in searchbar with tinyurls in database
+  for (let urls in urlDatabase) {
+    if (verifyShortURL === urls) {
+      wasVerified = true;
+    }
+  }
+
+  //if matching tinyurl not found in db, error
+  if (wasVerified !== true) {
+    return res.status(404).send('Error 404: Tiny URL not found in records.');
+  }
+
+  if (wasVerified === true && urlDatabase[verifyShortURL].userID !== userId) {
+    return res.status(401).send('Error 401: You do not have permission to edit this Tiny URL.');
+  }
+
+  ///////////////
 
   urlDatabase[urlID].longURL = newlongURL; //update database record of tinyURL (urlID) with new longURL from form submission
   console.log(urlDatabase); //log to see changes reflected
@@ -180,9 +232,9 @@ app.get("/urls", (req, res) => { //adds "/urls" route to main url
   const user = users[userId];
 
   //is user is not logged in
-  if (userId === undefined) { 
+  if (userId === undefined) {
     return res.status(401).send('Error 401: Please log in to access this page.');
-  };
+  }
 
   //call function to check URL database for records that exist for this userID and return only matching results to be displayed
   let confirmedURLs = urlsForUser(userId);
@@ -195,9 +247,9 @@ app.get("/urls/new", (req, res) => { //adds "urls/new" route
   const userId = req.cookies.user_id;
 
   //if user isnt logged in, redirect to login page instead of allowing access to create tiny urls
-  if (userId === undefined) { 
+  if (userId === undefined) {
     res.redirect('/login');
-  };
+  }
 
   const user = users[userId];
   const templateVars = { urls: urlDatabase, user: user };
@@ -212,7 +264,7 @@ app.get("/login", (req, res) => {
   //if user is logged in, redirect attempts to go to /login
   if (userId !== undefined) {
     res.redirect('/urls');
-  };
+  }
   
   const user = users[userId];
   const templateVars = { urls: urlDatabase, user: user };
@@ -224,9 +276,9 @@ app.get("/register", (req, res) => {
   const userId = req.cookies.user_id;
 
   //if user is logged in, redirect attempts to go to /register
-  if (userId !== undefined) { 
+  if (userId !== undefined) {
     res.redirect('/urls');
-  };
+  }
 
   const user = users[userId];
   const templateVars = { urls: urlDatabase, user: user };
@@ -237,28 +289,28 @@ app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value
   const userId = req.cookies.user_id;
   const user = users[userId];
 
-  if (userId === undefined) { 
+  if (userId === undefined) {
     return res.status(401).send('Error 401: Please log in to access this page.');
-  };
+  }
 
   const verifyShortURL = req.params.id; //store value of tinyURL used in browser
   let wasVerified = false;
 
   //compare url entered in searchbar with tinyurls in database
-  for (urls in urlDatabase) {
+  for (let urls in urlDatabase) {
     if (verifyShortURL === urls) {
       wasVerified = true;
     }
-  };
+  }
 
   //if matching tinyurl not found in db, error
   if (wasVerified !== true) {
     return res.status(404).send('Error 404: Tiny URL not found in records.');
-  };
+  }
 
   if (wasVerified === true && urlDatabase[verifyShortURL].userID !== userId) {
     return res.status(401).send('Error 401: You do not have permission to view this Tiny URL.');
-  };
+  }
 
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id].longURL, user: user}; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
   res.render("urls_show", templateVars); //render page, send obj to file
@@ -267,9 +319,9 @@ app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value
 app.get("/u/:id", (req, res) => {
   const userId = req.cookies.user_id;
 
-  if (userId === undefined) { 
+  if (userId === undefined) {
     return res.status(401).send('Error 401: Please log in to access this page.');
-  };
+  }
 
   res.redirect(`${urlDatabase[req.params.id].longURL}`); //redirect to matching longURL of tinyURL entered
   
