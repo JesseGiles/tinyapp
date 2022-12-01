@@ -5,15 +5,17 @@ const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs"); //set embedded js as template viewer
 
-const urlDatabase = { //object storing data for templates
+//database of key/value pairs storing tinyurl and longurl 
+const urlDatabase = { 
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
 
+//database of user registered to tinyapp
 const users = {
   userRandomID: {
     id: "userRandomID",
-    email: "rockybalboa@italianstallian.yo",
+    email: "rockybalboa@italianstallion.yo",
     password: "yo-adrian",
   },
   user2RandomID: {
@@ -23,7 +25,8 @@ const users = {
   }
 };
 
-const getUserByEmail = function(email) {
+//function to check user database for a webform submitted email
+const getUserByEmail = function(email) { 
   console.log('Verifying if this is an existing email: ', email);
   for (const userID in users) {
     if (email === users[userID].email) {
@@ -48,11 +51,19 @@ app.use(cookieParser());
 //external npm middleware function to parse cookies data as req.cookies from the header of a request
 
 app.use(express.urlencoded({ extended: true }));
-//this is a built-in middleware function in exprses. parses incoming requests created by a form submission (urls_new) so you can access data submitted using the req body (converts url encoded data to strings, otherwise body may show as undefined)
-//So using our urls_new form as an example, the data in the input field will be avaialbe to us in the req.body.longURL variable, which we can store in our urlDatabase object.
+//this is a built-in middleware function in exprses. parses incoming requests created by a form submission (urls_new) so you can access data submitted using the req.body (converts url encoded data to strings, otherwise body may show as undefined)
+
 
 //when user clicks submit on urls/new
 app.post("/urls", (req, res) => { // this function actions when form submitted
+  const userId = req.cookies.user_id;
+
+  //if user isnt logged in, return HTML message why they cannot shorten URLs
+  if (userId === undefined) { 
+    console.log(urlDatabase)
+    return res.status(400).send('Error 401: You must be logged in to create new TinyURLs.');
+  };
+
   let newTinyURL = makeTinyString(); // generate random tinyURL
   urlDatabase[newTinyURL] = req.body.longURL; // add tiny/long URL pair to DB
   console.log(req.body); // Log the POST request body to the console
@@ -83,13 +94,13 @@ app.post('/login', (req, res) => { //after login form submitted
   const loginEmail =  req.body.email;
   const loginPassword = req.body.password;
 
-  const validateUser = getUserByEmail(loginEmail);
+  const validateUser = getUserByEmail(loginEmail); //validate email entered on login with database
 
-  if (!validateUser) {
+  if (!validateUser) { //if email not found
     return res.status(403).send('Error 403: This email is not registered to TinyApp.');
   }
 
-  if (validateUser.password !== loginPassword) {
+  if (validateUser.password !== loginPassword) { //if pw doesnt match records
     return res.status(403).send('Error 403: Email/password do not match.');
   }
 
@@ -110,13 +121,13 @@ app.post('/register', (req, res) => {
   const submittedEmail = req.body.email;
   const submittedPW = req.body.password;
 
-  const validateUser = getUserByEmail(req.body.email);
+  const validateUser = getUserByEmail(req.body.email); //check if email already registered in database
 
-  if (validateUser) {
+  if (validateUser) { //if matching record found
     return res.status(400).send('Error 400: This email is already registered to another user.');
   }
 
-  if (submittedEmail === '' || submittedPW === '') {
+  if (submittedEmail === '' || submittedPW === '') { //if form fields were empty
     return res.status(400).send('Please enter a username and password');
   }
   
@@ -146,6 +157,12 @@ app.get("/urls", (req, res) => { //adds "/urls" route to main url
 
 app.get("/urls/new", (req, res) => { //adds "urls/new" route
   const userId = req.cookies.user_id;
+
+  //if user isnt logged in, redirect to login page instead of allowing access to create tiny urls
+  if (userId === undefined) { 
+    res.redirect('/login');
+  };
+
   const user = users[userId];
   const templateVars = { urls: urlDatabase, user: user };
 
@@ -155,6 +172,12 @@ app.get("/urls/new", (req, res) => { //adds "urls/new" route
 //page for logging into a user account
 app.get("/login", (req, res) => {
   const userId = req.cookies.user_id;
+
+  //if user is logged in, redirect attempts to go to /login
+  if (userId !== undefined) {
+    res.redirect('/urls');
+  };
+  
   const user = users[userId];
   const templateVars = { urls: urlDatabase, user: user };
   res.render('urls_login', templateVars);
@@ -163,12 +186,34 @@ app.get("/login", (req, res) => {
 //page for registering an email/password for tinyapp
 app.get("/register", (req, res) => {
   const userId = req.cookies.user_id;
+
+  //if user is logged in, redirect attempts to go to /register
+  if (userId !== undefined) { 
+    res.redirect('/urls');
+  };
+
   const user = users[userId];
   const templateVars = { urls: urlDatabase, user: user };
   res.render("urls_registration", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value entered at url but we are storing specifics in urlDatabase
+
+  const verifyURL = req.params.id;
+  let wasVerified = false;
+
+  for (urls in urlDatabase) {
+    console.log(`verifyURL:`, verifyURL)
+    console.log(`url records: `, urls)
+    if (verifyURL === urls) {
+      wasVerified = true;
+    }
+  };
+
+  if (wasVerified !== true) {
+    return res.status(404).send('Error 404: Tiny URL not found in records');
+  }
+
   const userId = req.cookies.user_id;
   const user = users[userId];
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], user: user}; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
