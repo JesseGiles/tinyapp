@@ -229,12 +229,12 @@ app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value
 
   const userId = req.cookies.user_id;
   const user = users[userId];
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], user: user}; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id].longURL, user: user}; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
   res.render("urls_show", templateVars); //render page, send obj to file
 });
 
 app.get("/u/:id", (req, res) => {
-  res.redirect(`${urlDatabase[req.params.id]}`); //redirect to matching longURL of tinyURL entered
+  res.redirect(`${urlDatabase[req.params.id].longURL}`); //redirect to matching longURL of tinyURL entered
   
 });
 
