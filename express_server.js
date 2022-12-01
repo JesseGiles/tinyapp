@@ -42,6 +42,20 @@ const getUserByEmail = function(email) {
   return null;
 };
 
+//function to filter /urls to only show what current user has created
+const urlsForUser = function(user) {
+  let currentUsersURLs = {}
+    
+  for (tinyURL in urlDatabase) {
+  	console.log('tiny:', tinyURL)
+    if (urlDatabase[tinyURL].userID === user){
+    currentUsersURLs[tinyURL] = urlDatabase[tinyURL]
+    }
+  }
+
+  return (currentUsersURLs);
+};
+
 //generate random string for use as tinyURL
 const makeTinyString = function() {
   let result = '';
@@ -164,7 +178,14 @@ app.get("/", (req, res) => { //get "/" is main url, displays hello msg
 app.get("/urls", (req, res) => { //adds "/urls" route to main url
   const userId = req.cookies.user_id;
   const user = users[userId];
-  const templateVars = { urls: urlDatabase, user: user };
+
+  if (userId === undefined) { 
+    return res.status(401).send('Error 401: Please log in to access this page.');
+  };
+
+  let confirmedURLs = urlsForUser(userId);
+  
+  const templateVars = { urls: confirmedURLs, user: user };
   res.render("urls_index", templateVars); //render html found on urls_index.ejs file, pass along templateVars object for use in that file
 });
 
