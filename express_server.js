@@ -7,8 +7,14 @@ app.set("view engine", "ejs"); //set embedded js as template viewer
 
 //database of key/value pairs storing tinyurl and longurl 
 const urlDatabase = { 
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW",
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW",
+  },
 };
 
 //database of user registered to tinyapp
@@ -55,8 +61,9 @@ app.use(express.urlencoded({ extended: true }));
 
 
 //when user clicks submit on urls/new
-app.post("/urls", (req, res) => { // this function actions when form submitted
+app.post("/urls", (req, res) => { 
   const userId = req.cookies.user_id;
+  newLongURL = req.body.longURL;
 
   //if user isnt logged in, return HTML message why they cannot shorten URLs
   if (userId === undefined) { 
@@ -65,7 +72,13 @@ app.post("/urls", (req, res) => { // this function actions when form submitted
   };
 
   let newTinyURL = makeTinyString(); // generate random tinyURL
-  urlDatabase[newTinyURL] = req.body.longURL; // add tiny/long URL pair to DB
+
+  //random tinyURL generates a new object inside urlDatabase object, stores a longURL key/value and a userID key/value
+  urlDatabase[newTinyURL] = {
+    longURL: newLongURL,
+    userID: req.cookies.user_id
+  }
+
   console.log(req.body); // Log the POST request body to the console
   console.log(`verifying new record added`, urlDatabase);
   res.redirect(`/urls/${newTinyURL}`); //redirect to new tinyURL page
@@ -82,9 +95,9 @@ app.post(`/urls/:id/delete`, (req, res) => { // this function actions when form 
 //when user submits edit on urls/:id
 app.post('/urls/:id', (req, res) => {
   const urlID = req.params.id; //take shortURL from browser url
-  const longURL = req.body.longURL; //get new longURL submitted on form
+  const newlongURL = req.body.longURL; //get new longURL submitted on form
 
-  urlDatabase[urlID] = longURL; //update database record of tinyURL (urlID) with new longURL from form submission
+  urlDatabase[urlID].longURL = newlongURL; //update database record of tinyURL (urlID) with new longURL from form submission
   console.log(urlDatabase); //log to see changes reflected
   res.redirect('/urls/');
 });
@@ -202,14 +215,14 @@ app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value
   const verifyURL = req.params.id;
   let wasVerified = false;
 
+  //compare url entered in searchbar with tinyurls in database
   for (urls in urlDatabase) {
-    console.log(`verifyURL:`, verifyURL)
-    console.log(`url records: `, urls)
     if (verifyURL === urls) {
       wasVerified = true;
     }
   };
 
+  //if matching tinyurl not found in db, error
   if (wasVerified !== true) {
     return res.status(404).send('Error 404: Tiny URL not found in records');
   }
