@@ -1,8 +1,10 @@
 const express = require("express");
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080; // default port 8080
+
+const getUserByEmail = require('./helpers');
 
 app.set("view engine", "ejs"); //set embedded js as template viewer
 
@@ -32,17 +34,6 @@ const users = {
   }
 };
 
-//function to check user database for a webform submitted email
-const getUserByEmail = function(email) {
-  console.log('Verifying if this is an existing email: ', email);
-  for (const userID in users) {
-    if (email === users[userID].email) {
-      return users[userID];
-    }
-  }
-  return null;
-};
-
 //function to filter /urls to only show what current user has created
 const urlsForUser = function(user) {
   let currentUsersURLs = {};
@@ -67,8 +58,12 @@ const makeTinyString = function() {
   return result;
 };
 
-app.use(cookieParser());
-//external npm middleware function to parse cookies data as req.cookies from the header of a request
+app.use(cookieSession({
+  name: 'session',
+  keys: ['superTopSecretKey1', 'evenMoreTopSecretKey2'],
+  maxAge: 24 * 60 * 60 * 1000 //24hr 
+}));
+//external npm middleware function to parse cookies data as req.cookies from the header of a request and encode them
 
 app.use(express.urlencoded({ extended: true }));
 //this is a built-in middleware function in exprses. parses incoming requests created by a form submission (urls_new) so you can access data submitted using the req.body (converts url encoded data to strings, otherwise body may show as undefined)
@@ -76,7 +71,7 @@ app.use(express.urlencoded({ extended: true }));
 
 //when user clicks submit on urls/new
 app.post("/urls", (req, res) => {
-  const userId = req.cookies.user_id;
+  const userId = req.session.user_id;
   const newLongURL = req.body.longURL;
 
   //if user isnt logged in, return HTML message why they cannot shorten URLs
@@ -90,7 +85,7 @@ app.post("/urls", (req, res) => {
   //random tinyURL generates a new object inside urlDatabase object, stores a longURL key/value and a userID key/value
   urlDatabase[newTinyURL] = {
     longURL: newLongURL,
-    userID: req.cookies.user_id
+    userID: req.session.user_id
   };
 
   console.log(req.body); // Log the POST request body to the console
@@ -102,7 +97,7 @@ app.post("/urls", (req, res) => {
 app.post(`/urls/:id/delete`, (req, res) => {
   let deleteRecord = req.params.id; //store id value of tinyURL delete clicked
 
-  const userId = req.cookies.user_id;
+  const userId = req.session.user_id;
   
   if (userId === undefined) {
     return res.status(401).send('Error 401: Please log in to access this page.');
@@ -137,7 +132,7 @@ app.post('/urls/:id', (req, res) => {
   const urlID = req.params.id; //take shortURL from browser url
   const newlongURL = req.body.longURL; //get new longURL submitted on form
 
-  const userId = req.cookies.user_id; //for verifying is a user is logged in
+  const userId = req.session.user_id; //for verifying is a user is logged in
  
   if (userId === undefined) {
     return res.status(401).send('Error 401: Please log in to access this page.');
@@ -174,7 +169,7 @@ app.post('/login', (req, res) => { //after login form submitted
   const loginEmail =  req.body.email;
   const loginPassword = req.body.password;
 
-  const validateUser = getUserByEmail(loginEmail); //validate email entered on login with database
+  const validateUser = getUserByEmail(loginEmail, users); //validate email entered on login with database
 
   if (!validateUser) { //if email not found
     return res.status(403).send('Error 403: This email is not registered to TinyApp.');
@@ -185,14 +180,15 @@ app.post('/login', (req, res) => { //after login form submitted
     return res.status(403).send('Error 403: Email/password do not match.');
   }
 
-  res.cookie('user_id', validateUser.id); //set cookie set to existing users id
+  req.session.user_id = validateUser.id; //set cookie set to existing users id
   console.log(`Existing user login for ${loginEmail}! Cookie set to userID:`, validateUser.id);
   res.redirect('/urls');
 });
 
 //when user presses logout button in header
 app.post('/logout', (req, res) => {
-  res.clearCookie('user_id'); //clear cookie so login form repopulates
+  req.session = null;
+  //res.clearCookie('user_id'); //clear cookie so login form repopulates
   res.redirect('/login');
 });
 
@@ -203,7 +199,7 @@ app.post('/register', (req, res) => {
   const submittedPW = req.body.password;
   const hashedPassword = bcrypt.hashSync(submittedPW, 10); //hash PW via bcrypt
 
-  const validateUser = getUserByEmail(req.body.email); //check if email already registered in database
+  const validateUser = getUserByEmail(submittedEmail, users); //check if email already registered in database
 
   if (validateUser) { //if matching record found
     return res.status(400).send('Error 400: This email is already registered to another user.');
@@ -220,7 +216,7 @@ app.post('/register', (req, res) => {
     password: hashedPassword,
   };
 
-  res.cookie('user_id', newUserID); //create cookie set to randomgen userID
+  req.session.user_id = newUserID; //create cookie set to randomgen userID
   console.log('Valid new user! Cookie created for userID:', newUserID);
   console.log('test log users db after new registration:', users);
   res.redirect('/urls');
@@ -231,7 +227,7 @@ app.get("/", (req, res) => { //get "/" is main url, displays hello msg
 });
 
 app.get("/urls", (req, res) => { //adds "/urls" route to main url
-  const userId = req.cookies.user_id;
+  const userId = req.session.user_id;
   const user = users[userId];
 
   //is user is not logged in
@@ -247,7 +243,7 @@ app.get("/urls", (req, res) => { //adds "/urls" route to main url
 });
 
 app.get("/urls/new", (req, res) => { //adds "urls/new" route
-  const userId = req.cookies.user_id;
+  const userId = req.session.user_id;
 
   //if user isnt logged in, redirect to login page instead of allowing access to create tiny urls
   if (userId === undefined) {
@@ -262,7 +258,7 @@ app.get("/urls/new", (req, res) => { //adds "urls/new" route
 
 //page for logging into a user account
 app.get("/login", (req, res) => {
-  const userId = req.cookies.user_id;
+  const userId = req.session.user_id;
 
   //if user is logged in, redirect attempts to go to /login
   if (userId !== undefined) {
@@ -276,7 +272,7 @@ app.get("/login", (req, res) => {
 
 //page for registering an email/password for tinyapp
 app.get("/register", (req, res) => {
-  const userId = req.cookies.user_id;
+  const userId = req.session.user_id;
 
   //if user is logged in, redirect attempts to go to /register
   if (userId !== undefined) {
@@ -289,7 +285,7 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value entered at url but we are storing specifics in urlDatabase
-  const userId = req.cookies.user_id;
+  const userId = req.session.user_id;
   const user = users[userId];
 
   if (userId === undefined) {
@@ -320,7 +316,7 @@ app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value
 });
 
 app.get("/u/:id", (req, res) => {
-  const userId = req.cookies.user_id;
+  const userId = req.session.user_id;
 
   if (userId === undefined) {
     return res.status(401).send('Error 401: Please log in to access this page.');
