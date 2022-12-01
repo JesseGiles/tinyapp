@@ -1,12 +1,14 @@
 const express = require("express");
 const cookieSession = require('cookie-session');
+const morgan = require('morgan')
 const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080; // default port 8080
 
-const getUserByEmail = require('./helpers');
+const { getUserByEmail } = require('./helpers.js');
 
 app.set("view engine", "ejs"); //set embedded js as template viewer
+app.use(morgan('tiny'));
 
 //database of key/value pairs storing tinyurl and longurl
 const urlDatabase = {
@@ -60,7 +62,7 @@ const makeTinyString = function() {
 
 app.use(cookieSession({
   name: 'session',
-  keys: ['superTopSecretKey1', 'evenMoreTopSecretKey2'],
+  keys: ['superTopSecretKey1', 'evenMoreTopSecretKey2', 'myMostSecretKeyEver3', 'isThisKeyEvenSecure4?', 'okThatsEnoughKeysForToday5'],
   maxAge: 24 * 60 * 60 * 1000 //24hr 
 }));
 //external npm middleware function to parse cookies data as req.cookies from the header of a request and encode them
@@ -85,7 +87,7 @@ app.post("/urls", (req, res) => {
   //random tinyURL generates a new object inside urlDatabase object, stores a longURL key/value and a userID key/value
   urlDatabase[newTinyURL] = {
     longURL: newLongURL,
-    userID: req.session.user_id
+    userID: userId
   };
 
   console.log(req.body); // Log the POST request body to the console
