@@ -1,5 +1,6 @@
 const express = require("express");
 const cookieParser = require('cookie-parser');
+const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -179,7 +180,8 @@ app.post('/login', (req, res) => { //after login form submitted
     return res.status(403).send('Error 403: This email is not registered to TinyApp.');
   }
 
-  if (validateUser.password !== loginPassword) { //if pw doesnt match records
+  //compare login pw with hashed pw from database via bcyrpt
+  if (bcrypt.compareSync(loginPassword, validateUser.password) === false) { 
     return res.status(403).send('Error 403: Email/password do not match.');
   }
 
@@ -199,6 +201,7 @@ app.post('/register', (req, res) => {
 
   const submittedEmail = req.body.email;
   const submittedPW = req.body.password;
+  const hashedPassword = bcrypt.hashSync(submittedPW, 10); //hash PW via bcrypt
 
   const validateUser = getUserByEmail(req.body.email); //check if email already registered in database
 
@@ -213,8 +216,8 @@ app.post('/register', (req, res) => {
   let newUserID = makeTinyString(); //generate random string for userID
   users[newUserID] = { // add new userid/email/pw to user database
     id: newUserID,
-    email: req.body.email,
-    password: req.body.password,
+    email: submittedEmail,
+    password: hashedPassword,
   };
 
   res.cookie('user_id', newUserID); //create cookie set to randomgen userID
