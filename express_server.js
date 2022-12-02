@@ -3,7 +3,7 @@ const cookieSession = require('cookie-session');
 const morgan = require('morgan');
 const bcrypt = require("bcryptjs");
 const app = express();
-const PORT = 8080; // default port 8080
+const PORT = 8080;
 
 const { getUserByEmail } = require('./helpers.js');
 
@@ -27,7 +27,7 @@ const users = {
   userRandomID: {
     id: "userRandomID",
     email: "rockybalboa@italianstallion.yo",
-    password: "yoadrian",
+    password: "yo-adrian",
   },
   user2RandomID: {
     id: "user2RandomID",
@@ -40,7 +40,7 @@ const users = {
 const urlsForUser = function(user) {
   let currentUsersURLs = {};
     
-  for (let tinyURL in urlDatabase) {
+  for (const tinyURL in urlDatabase) {
     if (urlDatabase[tinyURL].userID === user) {
       currentUsersURLs[tinyURL] = urlDatabase[tinyURL];
     }
@@ -49,10 +49,10 @@ const urlsForUser = function(user) {
   return (currentUsersURLs);
 };
 
-//generate random string for use as tinyURL
+//generate random string for use as tinyURL id
 const makeTinyString = function() {
   let result = '';
-  let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const charactersLength = characters.length;
   for (let i = 0; i < 6; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
@@ -70,20 +70,19 @@ app.use(cookieSession({
 //express middleware. parses incoming req.body requests created by a form submission (ie. urls_new) so you can access data submitted using req.bod (converts url encoded data to strings, otherwise body may show as undefined)
 app.use(express.urlencoded({ extended: true }));
 
+
 //when user clicks submit on urls/new
 app.post("/urls", (req, res) => {
-  const userId = req.session.user_id;
   let newLongURL = req.body.longURL;
+  const userId = req.session.user_id; //for verifying is a user is logged in
+
+  if (userId === undefined) {
+    return res.status(400).send('Error 401: You must be logged in to create new TinyURLs.');
+  }
 
   //if user did not prefix address with http:// we will add it for functionality
   if (newLongURL.substring(0,4) !== 'http') {
     newLongURL = 'http://' + newLongURL;
-  }
-
-  //if user isnt logged in, return HTML message why they cannot shorten URLs
-  if (userId === undefined) {
-    console.log(urlDatabase);
-    return res.status(400).send('Error 401: You must be logged in to create new TinyURLs.');
   }
 
   let newTinyURL = makeTinyString(); // generate random tinyURL
@@ -94,27 +93,24 @@ app.post("/urls", (req, res) => {
     userID: userId
   };
 
-  console.log(req.body); // Log the POST request body to the console
   console.log(`verifying new record added`, urlDatabase);
-  res.redirect(`/urls/${newTinyURL}`); //redirect to new tinyURL page
+  res.redirect(`/urls/${newTinyURL}`); //redirect to newly made tinyURL page
 });
 
 //when user clicks delete button on /urls
 app.post(`/urls/:id/delete`, (req, res) => {
-  let deleteRecord = req.params.id; //store id value of tinyURL delete clicked
-
-  const userId = req.session.user_id;
+  const deleteRecord = req.params.id; //store id of tinyURL being deleted
+  const userId = req.session.user_id; //for verifying is a user is logged in
   
   if (userId === undefined) {
     return res.status(401).send('Error 401: Please log in to access this page.');
   }
 
-  const verifyShortURL = deleteRecord; //store value of tinyURL used in browser
   let wasVerified = false;
 
   //compare url entered in searchbar with tinyurls in database
-  for (let urls in urlDatabase) {
-    if (verifyShortURL === urls) {
+  for (const currentURL in urlDatabase) {
+    if (deleteRecord === currentURL) {
       wasVerified = true;
     }
   }
@@ -124,18 +120,19 @@ app.post(`/urls/:id/delete`, (req, res) => {
     return res.status(404).send('Error 404: Tiny URL not found in records.');
   }
 
-  if (wasVerified === true && urlDatabase[verifyShortURL].userID !== userId) {
+  //if tinyurl exists but is not owned by current user, error
+  if (wasVerified === true && urlDatabase[deleteRecord].userID !== userId) {
     return res.status(401).send('Error 401: You do not have permission to delete this Tiny URL.');
   }
   
-  delete urlDatabase[deleteRecord]; //remove this id from database obj
+  delete urlDatabase[deleteRecord]; 
   console.log(`verifying deleted record: `, urlDatabase);
   res.redirect('/urls'); //reload /urls after deleting to see changes
 });
 
 //when user submits edit on urls/:id
 app.post('/urls/:id', (req, res) => {
-  const urlID = req.params.id; //take shortURL from browser url
+  const editedURL = req.params.id; //take shortURL entered in browser
   let newLongURL = req.body.longURL; //get new longURL submitted on form
 
   //if user did not prefix address with http:// we will add it for functionality
@@ -149,12 +146,11 @@ app.post('/urls/:id', (req, res) => {
     return res.status(401).send('Error 401: Please log in to access this page.');
   }
 
-  const verifyShortURL = urlID; //store value of tinyURL used in browser
   let wasVerified = false;
 
   //compare url entered in searchbar with tinyurls in database
-  for (let urls in urlDatabase) {
-    if (verifyShortURL === urls) {
+  for (const currentURL in urlDatabase) {
+    if (editedURL === currentURL) {
       wasVerified = true;
     }
   }
@@ -164,17 +160,18 @@ app.post('/urls/:id', (req, res) => {
     return res.status(404).send('Error 404: Tiny URL not found in records.');
   }
 
-  if (wasVerified === true && urlDatabase[verifyShortURL].userID !== userId) {
+  //if edited tinyurl exists in database but is not owned by current user
+  if (wasVerified === true && urlDatabase[editedURL].userID !== userId) {
     return res.status(401).send('Error 401: You do not have permission to edit this Tiny URL.');
   }
 
-  urlDatabase[urlID].longURL = newLongURL; //update database record of tinyURL (urlID) with new longURL from form submission
+  urlDatabase[editedURL].longURL = newLongURL; //update database record of tinyURL (urlID) with new longURL from form submission
   console.log(urlDatabase); //log to see changes reflected
   res.redirect('/urls/');
 });
 
 //when user submits login form in header
-app.post('/login', (req, res) => { //after login form submitted
+app.post('/login', (req, res) => {
   const loginEmail =  req.body.email;
   const loginPassword = req.body.password;
 
@@ -202,14 +199,13 @@ app.post('/logout', (req, res) => {
 
 //when user submits registration form with email/password
 app.post('/register', (req, res) => {
-
   const submittedEmail = req.body.email;
   const submittedPW = req.body.password;
   const hashedPassword = bcrypt.hashSync(submittedPW, 10); //hash PW via bcrypt
 
-  const validateUser = getUserByEmail(submittedEmail, users); //check if email already registered in database
+  const checkIfAlreadyRegistered = getUserByEmail(submittedEmail, users); //check if email already registered in database
 
-  if (validateUser) { //if matching record found
+  if (checkIfAlreadyRegistered) { //if matching record found
     return res.status(400).send('Error 400: This email is already registered to another user.');
   }
 
@@ -218,6 +214,7 @@ app.post('/register', (req, res) => {
   }
   
   let newUserID = makeTinyString(); //generate random string for userID
+
   users[newUserID] = { // add new userid/email/pw to user database
     id: newUserID,
     email: submittedEmail,
@@ -226,17 +223,17 @@ app.post('/register', (req, res) => {
 
   req.session.user_id = newUserID; //create cookie set to randomgen userID
   console.log('Valid new user! Cookie created for userID:', newUserID);
-  console.log('test log users db after new registration:', users);
+  console.log('Logging updated users database after new registration:', users);
   res.redirect('/urls');
 });
 
-app.get("/", (req, res) => { //get "/" is main url, displays hello msg
-  res.send("Hello!");
+app.get("/", (req, res) => {
+  res.send("Congratulations! You found the hidden content. It's actually a complete lack of content. Please try adding something more meaningful in the search bar, maybe.. /register ?");
 });
 
-app.get("/urls", (req, res) => { //adds "/urls" route to main url
-  const userId = req.session.user_id;
-  const user = users[userId];
+app.get("/urls", (req, res) => {
+  const userId = req.session.user_id; //for verifying is a user is logged in
+  const user = users[userId]; //for populating header with user email
 
   //is user is not logged in
   if (userId === undefined) {
@@ -250,15 +247,15 @@ app.get("/urls", (req, res) => { //adds "/urls" route to main url
   res.render("urls_index", templateVars); //render html found on urls_index.ejs file, pass along templateVars object for use in that file
 });
 
-app.get("/urls/new", (req, res) => { //adds "urls/new" route
-  const userId = req.session.user_id;
+app.get("/urls/new", (req, res) => {
+  const userId = req.session.user_id; //for verifying is a user is logged in
+  const user = users[userId]; //for populating header with user email
 
-  //if user isnt logged in, redirect to login page instead of allowing access to create tiny urls
+  //if user isnt logged in, redirect to login page instead
   if (userId === undefined) {
     return res.redirect('/login');
   }
 
-  const user = users[userId];
   const templateVars = { urls: urlDatabase, user: user };
 
   res.render("urls_new", templateVars); //utlizing urls_new.js
@@ -266,35 +263,35 @@ app.get("/urls/new", (req, res) => { //adds "urls/new" route
 
 //page for logging into a user account
 app.get("/login", (req, res) => {
-  const userId = req.session.user_id;
+  const userId = req.session.user_id; //for verifying is a user is logged in
+  const user = users[userId]; //for populating header with user email
 
   //if user is logged in, redirect attempts to go to /login
   if (userId !== undefined) {
     res.redirect('/urls');
   }
   
-  const user = users[userId];
   const templateVars = { urls: urlDatabase, user: user };
   res.render('urls_login', templateVars);
 });
 
 //page for registering an email/password for tinyapp
 app.get("/register", (req, res) => {
-  const userId = req.session.user_id;
+  const userId = req.session.user_id; //for verifying is a user is logged in
+  const user = users[userId]; //for populating header with user email
 
   //if user is logged in, redirect attempts to go to /register
   if (userId !== undefined) {
     res.redirect('/urls');
   }
 
-  const user = users[userId];
   const templateVars = { urls: urlDatabase, user: user };
   res.render("urls_registration", templateVars);
 });
 
-app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value entered at url but we are storing specifics in urlDatabase
-  const userId = req.session.user_id;
-  const user = users[userId];
+app.get("/urls/:id", (req, res) => {
+  const userId = req.session.user_id; //for verifying is a user is logged in
+  const user = users[userId]; //for populating header with user email
 
   if (userId === undefined) {
     return res.status(401).send('Error 401: Please log in to access this page.');
@@ -304,8 +301,8 @@ app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value
   let wasVerified = false;
 
   //compare url entered in searchbar with tinyurls in database
-  for (let urls in urlDatabase) {
-    if (verifyShortURL === urls) {
+  for (const currentURL in urlDatabase) {
+    if (verifyShortURL === currentURL) {
       wasVerified = true;
     }
   }
@@ -315,11 +312,12 @@ app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value
     return res.status(404).send('Error 404: Tiny URL not found in records.');
   }
 
+  //if matching tinyurl found but not owned by current user
   if (wasVerified === true && urlDatabase[verifyShortURL].userID !== userId) {
     return res.status(401).send('Error 401: You do not have permission to view this Tiny URL.');
   }
 
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id].longURL, user: user}; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
+  const templateVars = { id: verifyShortURL, longURL: urlDatabase[req.params.id].longURL, user: user}; //obj storing the entered url param(anything after ":" and associated longURL if param matches databse)
   res.render("urls_show", templateVars); //render page, send obj to file
 });
 
@@ -331,10 +329,6 @@ app.get("/u/:id", (req, res) => {
 
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase); //shows contents of urlDatabase obj in browser
-});
-
-app.get("/hello", (req, res) => { //adds "/hello" url and some basic html
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
 app.listen(PORT, () => {
