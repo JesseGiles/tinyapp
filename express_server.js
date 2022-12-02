@@ -1,6 +1,6 @@
 const express = require("express");
 const cookieSession = require('cookie-session');
-const morgan = require('morgan')
+const morgan = require('morgan');
 const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080; // default port 8080
@@ -60,21 +60,25 @@ const makeTinyString = function() {
   return result;
 };
 
+//external npm middleware function to parse cookies data as req.cookies from the header of a request and encode them
 app.use(cookieSession({
   name: 'session',
   keys: ['superTopSecretKey1', 'evenMoreTopSecretKey2', 'myMostSecretKeyEver3', 'isThisKeyEvenSecure4?', 'okThatsEnoughKeysForToday5'],
-  maxAge: 24 * 60 * 60 * 1000 //24hr 
+  maxAge: 24 * 60 * 60 * 1000 //24hr timer on storing cookie
 }));
-//external npm middleware function to parse cookies data as req.cookies from the header of a request and encode them
 
+//express middleware. parses incoming req.body requests created by a form submission (ie. urls_new) so you can access data submitted using req.bod (converts url encoded data to strings, otherwise body may show as undefined)
 app.use(express.urlencoded({ extended: true }));
-//this is a built-in middleware function in exprses. parses incoming requests created by a form submission (urls_new) so you can access data submitted using the req.body (converts url encoded data to strings, otherwise body may show as undefined)
-
 
 //when user clicks submit on urls/new
 app.post("/urls", (req, res) => {
   const userId = req.session.user_id;
-  const newLongURL = req.body.longURL;
+  let newLongURL = req.body.longURL;
+
+  //if user did not prefix address with http:// we will add it for functionality
+  if (newLongURL.substring(0,4) !== 'http') {
+    newLongURL = 'http://' + newLongURL;
+  }
 
   //if user isnt logged in, return HTML message why they cannot shorten URLs
   if (userId === undefined) {
@@ -132,7 +136,12 @@ app.post(`/urls/:id/delete`, (req, res) => {
 //when user submits edit on urls/:id
 app.post('/urls/:id', (req, res) => {
   const urlID = req.params.id; //take shortURL from browser url
-  const newlongURL = req.body.longURL; //get new longURL submitted on form
+  let newLongURL = req.body.longURL; //get new longURL submitted on form
+
+  //if user did not prefix address with http:// we will add it for functionality
+  if (newLongURL.substring(0,4) !== 'http') {
+    newLongURL = 'http://' + newLongURL;
+  }
 
   const userId = req.session.user_id; //for verifying is a user is logged in
  
@@ -159,9 +168,7 @@ app.post('/urls/:id', (req, res) => {
     return res.status(401).send('Error 401: You do not have permission to edit this Tiny URL.');
   }
 
-  ///////////////
-
-  urlDatabase[urlID].longURL = newlongURL; //update database record of tinyURL (urlID) with new longURL from form submission
+  urlDatabase[urlID].longURL = newLongURL; //update database record of tinyURL (urlID) with new longURL from form submission
   console.log(urlDatabase); //log to see changes reflected
   res.redirect('/urls/');
 });
@@ -178,7 +185,7 @@ app.post('/login', (req, res) => { //after login form submitted
   }
 
   //compare login pw with hashed pw from database via bcyrpt
-  if (bcrypt.compareSync(loginPassword, validateUser.password) === false) { 
+  if (bcrypt.compareSync(loginPassword, validateUser.password) === false) {
     return res.status(403).send('Error 403: Email/password do not match.');
   }
 
@@ -189,8 +196,7 @@ app.post('/login', (req, res) => { //after login form submitted
 
 //when user presses logout button in header
 app.post('/logout', (req, res) => {
-  req.session = null;
-  //res.clearCookie('user_id'); //clear cookie so login form repopulates
+  req.session = null; //clear all session cookies
   res.redirect('/login');
 });
 
@@ -249,7 +255,7 @@ app.get("/urls/new", (req, res) => { //adds "urls/new" route
 
   //if user isnt logged in, redirect to login page instead of allowing access to create tiny urls
   if (userId === undefined) {
-    res.redirect('/login');
+    return res.redirect('/login');
   }
 
   const user = users[userId];
@@ -318,12 +324,7 @@ app.get("/urls/:id", (req, res) => { //adds "urls/(x)"" x param can be any value
 });
 
 app.get("/u/:id", (req, res) => {
-  const userId = req.session.user_id;
-
-  if (userId === undefined) {
-    return res.status(401).send('Error 401: Please log in to access this page.');
-  }
-
+ 
   res.redirect(`${urlDatabase[req.params.id].longURL}`); //redirect to matching longURL of tinyURL entered
   
 });
