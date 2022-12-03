@@ -77,7 +77,7 @@ app.post("/urls", (req, res) => {
   const userId = req.session.user_id; //for verifying is a user is logged in
 
   if (userId === undefined) {
-    return res.status(400).send('Error 401: You must be logged in to create new TinyURLs.');
+    return res.status(401).send("Error 401: You must be logged in to create new TinyURLs. Click <a href='/login'>here</a> to log in.");
   }
 
   //if user did not prefix address with http:// we will add it for functionality
@@ -177,13 +177,8 @@ app.post('/login', (req, res) => {
 
   const validateUser = getUserByEmail(loginEmail, users); //validate email entered on login with database
 
-  if (!validateUser) { //if email not found
-    return res.status(403).send('Error 403: This email is not registered to TinyApp.');
-  }
-
-  //compare login pw with hashed pw from database via bcyrpt
-  if (bcrypt.compareSync(loginPassword, validateUser.password) === false) {
-    return res.status(403).send('Error 403: Email/password do not match.');
+  if (!validateUser || bcrypt.compareSync(loginPassword, validateUser.password) === false) { //if email not registered or PW is incorrect
+    return res.status(403).send("Error 403: Invalid login credentials. Click <a href='/login'>here</a> to try again");
   }
 
   req.session.user_id = validateUser.id; //set cookie set to existing users id
@@ -206,11 +201,11 @@ app.post('/register', (req, res) => {
   const checkIfAlreadyRegistered = getUserByEmail(submittedEmail, users); //check if email already registered in database
 
   if (checkIfAlreadyRegistered) { //if matching record found
-    return res.status(400).send('Error 400: This email is already registered to another user.');
+    return res.status(400).send("Error 400: This email is already registered to another user. Click <a href='/register'>here</a> to try again");
   }
 
   if (submittedEmail === '' || submittedPW === '') { //if form fields were empty
-    return res.status(400).send('Please enter a username and password');
+    return res.status(400).send("Please enter a username and password. Click <a href='/register'>here</a> to try again");
   }
   
   let newUserID = makeTinyString(); //generate random string for userID
